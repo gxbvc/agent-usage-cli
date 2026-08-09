@@ -43,7 +43,7 @@ co.gen.agent-usage-collector   StartInterval=900 (15m), RunAtLoad
 co.gen.agent-usage-web         KeepAlive, RunAtLoad
 ```
 
-Templates live in `../launchd/*.plist.erb` and are checked in with no machine-specific paths — `bin/install-services` fills in absolute Ruby/Bundler/Node/provider-CLI paths and writes the rendered plists to `~/Library/LaunchAgents/`. Logs go to `~/Library/Logs/agent-usage-cli/`. Both scripts are idempotent (bootout before bootstrap).
+Templates live in `../launchd/*.plist.erb` and are checked in with no machine-specific paths — `bin/install-services` fills in absolute Ruby/Bundler/Node/provider-CLI paths and writes the rendered plists to `~/Library/LaunchAgents/`. Logs go to `~/Library/Logs/agent-usage-cli/`. Both scripts are idempotent: install boots the old instance out, polls `launchctl print` until it's actually gone (bounded wait — `bootout` returns before the unload finishes), then `enable`s and `bootstrap`s the new one; `RunAtLoad` starts it, so there's no separate kickstart/restart. Uninstall boots out and waits for the same absence check. Every `launchctl` call's exit status is checked; a failure raises `AgentUsage::Launchd::LaunchctlError` instead of the script reporting success. `AgentUsage::Launchd.install!`/`uninstall!` take injectable `runner:`/`sleeper:` callables so tests never shell out to real `launchctl` (`ruby/test/launchd_test.rb`).
 
 ## Logos
 
