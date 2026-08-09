@@ -57,8 +57,8 @@ test("normalizes the live Grok billing nesting and every useful field", () => {
   });
   assert.deepEqual(result.usage, {
     creditUsagePercent: 73.5,
-    remainingPercent: 73.5,
-    usedPercent: 26.5,
+    usedPercent: 73.5,
+    remainingPercent: 26.5,
     currentPeriod: {
       type: "weekly",
       start: "2026-08-01T00:00:00.000Z",

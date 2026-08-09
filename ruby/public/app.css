@@ -10,6 +10,10 @@
   --positive: #047857;
   --negative: #b91c1c;
   --projection: #b45309;
+  --claude-color: #c2410c;
+  --codex-color: #0e8f6f;
+  --grok-color: #7c3aed;
+  --default-provider-color: #64748b;
   --banner-warning-bg: #fef3c7;
   --banner-warning-fg: #78350f;
   --banner-error-bg: #fee2e2;
@@ -29,6 +33,10 @@
     --positive: #34d399;
     --negative: #f87171;
     --projection: #fbbf24;
+    --claude-color: #fb923c;
+    --codex-color: #2dd4bf;
+    --grok-color: #a78bfa;
+    --default-provider-color: #94a3b8;
     --banner-warning-bg: #3f2d05;
     --banner-warning-fg: #fde68a;
     --banner-error-bg: #3f1414;
@@ -48,6 +56,10 @@
   --positive: #34d399;
   --negative: #f87171;
   --projection: #fbbf24;
+  --claude-color: #fb923c;
+  --codex-color: #2dd4bf;
+  --grok-color: #a78bfa;
+  --default-provider-color: #94a3b8;
 }
 
 :root[data-theme="light"] {
@@ -61,6 +73,10 @@
   --positive: #047857;
   --negative: #b91c1c;
   --projection: #b45309;
+  --claude-color: #c2410c;
+  --codex-color: #0e8f6f;
+  --grok-color: #7c3aed;
+  --default-provider-color: #64748b;
 }
 
 * {
@@ -265,14 +281,6 @@ summary:focus-visible {
   color: var(--negative);
 }
 
-.chart-figure {
-  margin: 8px 0 0;
-}
-
-.chart-figure-small {
-  margin-top: 8px;
-}
-
 .chart-caption {
   font-size: 0.8rem;
   color: var(--muted);
@@ -334,6 +342,133 @@ summary:focus-visible {
 
 .chart-point-projection {
   fill: var(--projection);
+}
+
+/* Overlay comparison charts: one series per provider on a shared ideal
+   diagonal. Color alone never carries the distinction — each provider also
+   gets its own line dash pattern (set inline per SVG element) and marker
+   shape (circle/square/triangle/diamond, chosen in chart.rb). */
+.comparison-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 24px 24px;
+  margin-bottom: 24px;
+}
+
+.comparison-section h2 {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+}
+
+.comparison-blurb {
+  margin: 0 0 14px;
+  max-width: 68ch;
+}
+
+.comparison-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-actual-provider-claude {
+  stroke: var(--claude-color);
+}
+
+.chart-actual-provider-codex {
+  stroke: var(--codex-color);
+}
+
+.chart-actual-provider-grok {
+  stroke: var(--grok-color);
+}
+
+.chart-actual-provider-default {
+  stroke: var(--default-provider-color);
+}
+
+.chart-point-provider-claude {
+  fill: var(--claude-color);
+}
+
+.chart-point-provider-codex {
+  fill: var(--codex-color);
+}
+
+.chart-point-provider-grok {
+  fill: var(--grok-color);
+}
+
+.chart-point-provider-default {
+  fill: var(--default-provider-color);
+}
+
+.chart-projection-provider-claude {
+  stroke: var(--claude-color);
+}
+
+.chart-projection-provider-codex {
+  stroke: var(--codex-color);
+}
+
+.chart-projection-provider-grok {
+  stroke: var(--grok-color);
+}
+
+.chart-projection-provider-default {
+  stroke: var(--default-provider-color);
+}
+
+.comparison-legend {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comparison-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.comparison-legend-text {
+  color: var(--muted);
+}
+
+.comparison-legend-text strong {
+  color: var(--fg);
+}
+
+.legend-marker {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.legend-marker-claude {
+  background: var(--claude-color);
+  border-radius: 50%;
+}
+
+.legend-marker-codex {
+  background: var(--codex-color);
+}
+
+.legend-marker-grok {
+  background: var(--grok-color);
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+.provider-logo {
+  border-radius: 4px;
+  flex: none;
 }
 
 .secondary-windows {

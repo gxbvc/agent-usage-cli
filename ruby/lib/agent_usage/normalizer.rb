@@ -6,7 +6,7 @@ module AgentUsage
   # flat window observations ready for storage. Kept separate from the
   # collector so a future normalizer_version can reprocess raw_snapshots.
   module Normalizer
-    VERSION = 1
+    VERSION = 2
 
     FIVE_HOURS_SECONDS = 5 * 3600
     SEVEN_DAYS_SECONDS = 7 * 24 * 3600
@@ -117,11 +117,16 @@ module AgentUsage
         main_window["resetsAt"] == candidate["resetsAt"]
     end
 
+    # Grok's config.creditUsagePercent is the truthful percent-used value
+    # (100 = fully used). Prefer it over usage["usedPercent"] so raw
+    # snapshots stored by a pre-fix build of agent-usage-cli — whose
+    # usedPercent/remainingPercent were swapped but whose creditUsagePercent
+    # passthrough was always correct — reprocess into correct history.
     def self.grok_windows(provider_result)
       usage = provider_result["usage"]
       return [] unless usage.is_a?(Hash)
 
-      used_percent = usage["usedPercent"]
+      used_percent = usage["creditUsagePercent"] || usage["usedPercent"]
       current_period = usage["currentPeriod"]
       return [] unless used_percent && current_period.is_a?(Hash)
 
@@ -139,6 +144,33 @@ module AgentUsage
           raw_window: current_period.merge("usedPercent" => used_percent),
         ),
       ]
+    end
+
+    # Shared insert used by both the live Collector and the Reprocessor so
+    # they write identical SQL against window_observations. Callers that
+    # replace an existing snapshot's rows (the Reprocessor) must DELETE
+    # first: INSERT OR IGNORE silently no-ops on the unique
+    # (raw_snapshot_id, provider, window_key) index otherwise.
+    def self.store_window(db, raw_snapshot_id, collected_at, provider, observation)
+      db.execute(
+        "INSERT OR IGNORE INTO window_observations " \
+        "(raw_snapshot_id, collected_at, provider, window_key, primary_window, " \
+        "period_start, period_end, used_percent, remaining_percent, normalizer_version, raw_window_json) " \
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          raw_snapshot_id,
+          collected_at,
+          provider.to_s,
+          observation[:window_key],
+          observation[:primary_window] ? 1 : 0,
+          observation[:period_start],
+          observation[:period_end],
+          observation[:used_percent],
+          observation[:remaining_percent],
+          observation[:normalizer_version],
+          observation[:raw_window_json],
+        ],
+      )
     end
 
     def self.build_observation(window_key:, primary_window:, period_start:, period_end:, used_percent:, raw_window:)

@@ -88,10 +88,29 @@ class NormalizerTest < AgentUsageTest
     window = windows.first
     assert_equal "currentPeriod", window[:window_key]
     assert window[:primary_window]
-    assert_equal 26.5, window[:used_percent]
-    assert_equal 73.5, window[:remaining_percent]
+    assert_equal 73.5, window[:used_percent]
+    assert_equal 26.5, window[:remaining_percent]
     assert_equal "2026-01-01T00:00:00Z", window[:period_start]
     assert_equal "2026-01-08T00:00:00Z", window[:period_end]
+  end
+
+  def test_grok_prefers_credit_usage_percent_over_a_stale_inverted_used_percent
+    # Simulates a raw_snapshot stored by a pre-fix agent-usage-cli build:
+    # usedPercent/remainingPercent were swapped, but creditUsagePercent was
+    # always passed through unmutated. Reprocessing must trust the latter.
+    provider_result = {
+      "usage" => {
+        "creditUsagePercent" => 73.5,
+        "usedPercent" => 26.5,
+        "remainingPercent" => 73.5,
+        "currentPeriod" => { "start" => "2026-01-01T00:00:00Z", "end" => "2026-01-08T00:00:00Z" },
+      },
+    }
+
+    window = AgentUsage::Normalizer.windows_for("grok", provider_result).first
+    assert_equal 73.5, window[:used_percent]
+    assert_equal 26.5, window[:remaining_percent]
+    assert_equal AgentUsage::Normalizer::VERSION, window[:normalizer_version]
   end
 
   def test_returns_empty_array_for_missing_or_malformed_usage

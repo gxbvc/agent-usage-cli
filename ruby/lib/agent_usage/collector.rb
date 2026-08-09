@@ -131,33 +131,11 @@ module AgentUsage
 
         (data["providers"] || {}).each do |provider, provider_result|
           Normalizer.windows_for(provider, provider_result).each do |observation|
-            insert_observation(db, raw_snapshot_id, collected_at, provider, observation)
+            Normalizer.store_window(db, raw_snapshot_id, collected_at, provider, observation)
           end
         end
       end
       db.close
-    end
-
-    def insert_observation(db, raw_snapshot_id, collected_at, provider, observation)
-      db.execute(
-        "INSERT OR IGNORE INTO window_observations " \
-        "(raw_snapshot_id, collected_at, provider, window_key, primary_window, " \
-        "period_start, period_end, used_percent, remaining_percent, normalizer_version, raw_window_json) " \
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-          raw_snapshot_id,
-          collected_at,
-          provider.to_s,
-          observation[:window_key],
-          observation[:primary_window] ? 1 : 0,
-          observation[:period_start],
-          observation[:period_end],
-          observation[:used_percent],
-          observation[:remaining_percent],
-          observation[:normalizer_version],
-          observation[:raw_window_json],
-        ],
-      )
     end
   end
 end

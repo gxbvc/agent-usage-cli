@@ -20,7 +20,7 @@ export interface ProviderResult {
 }
 
 export interface UsageData {
-  schemaVersion: 1;
+  schemaVersion: 2;
   observedAt: string;
   complete: boolean;
   providers: Partial<Record<ProviderName, ProviderResult>>;

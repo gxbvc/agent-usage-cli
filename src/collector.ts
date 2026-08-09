@@ -38,7 +38,7 @@ export async function collectUsage(
   return {
     ok: true,
     data: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       observedAt: new Date().toISOString(),
       complete: errors.length === 0,
       providers,

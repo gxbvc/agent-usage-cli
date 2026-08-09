@@ -5,9 +5,22 @@ module AgentUsage
   # Computes the burn-down view model shown by the web UI: per-window gap
   # vs. ideal pace, required daily burn, reset countdown, and (when at
   # least two real observations exist in the active period) a recent-pace
-  # projection. Ranking always uses each provider's primary window.
+  # projection.
+  #
+  # Windows are grouped into comparison classes by their actual duration
+  # (period_end - period_start) rather than by each provider's JSON-literal
+  # primary/secondary naming: Codex has reported its weekly-class window as
+  # both "secondary" (300-min primary, 10080-min secondary) and "primary"
+  # (10080-min primary) depending on the account, so the field name alone
+  # is not a reliable signal. Classifying by duration means a future
+  # provider that reshapes its response still lands in the right
+  # comparison automatically. Ranking always uses each provider's
+  # weekly-class window.
   module Dashboard
     STALE_AFTER_SECONDS = 30 * 60
+
+    WEEKLY_DURATION_SECONDS = (6.5 * 24 * 3600)..(7.5 * 24 * 3600)
+    SHORT_DURATION_SECONDS = (1.0 * 3600)..(8.0 * 3600)
 
     PROVIDER_LABELS = { "claude" => "Claude", "codex" => "Codex", "grok" => "Grok" }.freeze
 
@@ -32,8 +45,8 @@ module AgentUsage
       ).map { |row| row["provider"] }
 
       provider_views = providers_present.filter_map { |provider| build_provider_view(db, provider, latest, now) }
-      ranked = provider_views.select { |view| view[:primary_window] }
-                              .sort_by { |view| [-view[:primary_window][:gap_points], -(view[:primary_window][:required_daily_burn] || 0)] }
+      ranked = provider_views.select { |view| view[:ranking_window] }
+                              .sort_by { |view| [-view[:ranking_window][:gap_points], -(view[:ranking_window][:required_daily_burn] || 0)] }
 
       {
         generated_at: now.utc.iso8601,
@@ -45,6 +58,7 @@ module AgentUsage
         recommendation: recommendation_for(ranked),
         providers: provider_views,
         ranking: ranked.map { |view| view[:provider] },
+        comparison: build_comparison(provider_views),
       }
     end
 
@@ -59,6 +73,7 @@ module AgentUsage
         recommendation: nil,
         providers: [],
         ranking: [],
+        comparison: { weekly: [], short: [] },
       }
     end
 
@@ -69,9 +84,9 @@ module AgentUsage
       {
         provider: top[:provider],
         label: top[:label],
-        gap_points: top[:primary_window][:gap_points],
+        gap_points: top[:ranking_window][:gap_points],
         reason: "#{top[:label]} has the most unused allowance relative to time remaining " \
-                "(#{format('%+.1f', top[:primary_window][:gap_points])} points vs. ideal pace).",
+                "(#{format('%+.1f', top[:ranking_window][:gap_points])} points vs. ideal pace).",
       }
     end
 
@@ -85,15 +100,63 @@ module AgentUsage
       windows = window_keys.filter_map { |key| build_window_view(db, provider, key, latest, now) }
       return nil if windows.empty?
 
-      primary = windows.find { |window| window[:primary_window] }
-      secondary = windows.reject { |window| window[:primary_window] }.sort_by { |window| window[:window_key] }
+      ranking_window = comparison_window(windows, :weekly) || windows.find { |window| window[:primary_window] } || windows.first
+      secondary_windows = windows.reject { |window| window.equal?(ranking_window) }.sort_by { |window| window[:window_key] }
 
       {
         provider: provider,
         label: PROVIDER_LABELS.fetch(provider, provider.to_s.capitalize),
-        primary_window: primary,
-        secondary_windows: secondary,
+        ranking_window: ranking_window,
+        secondary_windows: secondary_windows,
+        windows: windows,
       }
+    end
+
+    # Duration-classified windows can tie (Claude's seven_day and
+    # seven_day_sonnet are both exactly 7 days; Codex's secondary and a
+    # per-model rateLimitsByLimitId extra can both be exactly 10080
+    # minutes). Prefer the well-known window key — the provider's actual
+    # main subscription window — over a dynamically-named per-model extra.
+    def self.comparison_window(windows, duration_class)
+      candidates = windows.select { |window| window[:duration_class] == duration_class }
+      return nil if candidates.empty?
+
+      candidates.find { |window| WINDOW_LABELS.key?(window[:window_key]) } || candidates.min_by { |window| window[:window_key] }
+    end
+
+    # One entry per provider per comparison class, for the two full-width
+    # overlay charts. A provider with no window in a given duration class
+    # (e.g. Grok currently has no short-class window) is simply absent from
+    # that comparison so the charts still render for the providers that do.
+    def self.build_comparison(provider_views)
+      {
+        weekly: provider_views.filter_map { |view| comparison_entry(view, comparison_window(view[:windows], :weekly)) },
+        short: provider_views.filter_map { |view| comparison_entry(view, comparison_window(view[:windows], :short)) },
+      }
+    end
+
+    def self.comparison_entry(view, window)
+      return nil unless window
+
+      {
+        provider: view[:provider],
+        label: view[:label],
+        window_key: window[:window_key],
+        window_label: window[:label],
+        chart: window[:chart],
+        remaining_percent: window[:remaining_percent],
+        gap_points: window[:gap_points],
+        reset_countdown_seconds: window[:reset_countdown_seconds],
+        period_start: window[:period_start],
+        period_end: window[:period_end],
+      }
+    end
+
+    def self.classify_duration(seconds)
+      return :weekly if WEEKLY_DURATION_SECONDS.cover?(seconds)
+      return :short if SHORT_DURATION_SECONDS.cover?(seconds)
+
+      nil
     end
 
     def self.build_window_view(db, provider, window_key, latest, now)
@@ -124,6 +187,7 @@ module AgentUsage
         window_key: window_key,
         label: window_label(window_key, current["raw_window_json"]),
         primary_window: current["primary_window"] == 1,
+        duration_class: classify_duration(period_end - period_start),
         used_percent: current["used_percent"],
         remaining_percent: current["remaining_percent"],
         period_start: current["period_start"],

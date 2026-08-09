@@ -17,7 +17,7 @@ agent-usage-cli --strict                     # Exit 1 if any selected provider f
 ## Output
 
 ```json
-{"ok":true,"data":{"schemaVersion":1,"observedAt":"2026-08-09T04:00:00.000Z","complete":true,"providers":{},"errors":[]}}
+{"ok":true,"data":{"schemaVersion":2,"observedAt":"2026-08-09T04:00:00.000Z","complete":true,"providers":{},"errors":[]}}
 ```
 
 Partial failures set `complete` to false and add a stable, secret-safe entry to `errors`. Successful providers remain in `providers`. Default mode exits 0 for partial failures. `--strict` exits 1.
@@ -34,6 +34,7 @@ bin/collector           # one collection into ~/Library/Application Support/agen
 bin/server               # http://127.0.0.1:4570
 bin/install-services     # launchd: collect every 15m, keep the server running
 bin/uninstall-services   # stop the launchd services (keeps the database)
+bin/reprocess            # rebuild window_observations from raw_snapshots (after a normalizer fix)
 ```
 
-`AGENT_USAGE_DB` overrides the SQLite path. The dashboard ranks providers by remaining allowance percentage vs. ideal pace on each provider's primary window (Claude `seven_day`, Codex `rateLimits.rateLimits.primary`, Grok `currentPeriod`).
+`AGENT_USAGE_DB` overrides the SQLite path. The dashboard ranks providers by remaining allowance percentage vs. ideal pace on each provider's **weekly-duration** window, classified by actual period length (~7 days) rather than by JSON field name — Codex has reported its weekly window under either `primary` or `secondary` depending on the account, so duration classification handles both shapes. Grok's `config.creditUsagePercent` is the percent of the weekly allowance already used (100 = fully used), not remaining.

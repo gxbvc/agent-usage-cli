@@ -25,7 +25,7 @@ class DashboardTest < AgentUsageTest
     insert_snapshot(collected_at: "2026-01-04T00:00:00Z", windows: [claude_window(remaining_percent: 70.0, collected_at: "2026-01-04T00:00:00Z")])
 
     view = AgentUsage::Dashboard.build(@db, now: Time.parse("2026-01-04T12:00:00Z"))
-    window = view[:providers].first[:primary_window]
+    window = view[:providers].first[:ranking_window]
 
     assert_in_delta 0.5, window[:elapsed_fraction], 0.0001
     assert_in_delta 50.0, window[:ideal_remaining_percent], 0.0001
@@ -40,7 +40,7 @@ class DashboardTest < AgentUsageTest
     insert_snapshot(collected_at: "2026-01-04T00:00:00Z", windows: [claude_window(remaining_percent: 70.0, collected_at: "2026-01-04T00:00:00Z")])
 
     view = AgentUsage::Dashboard.build(@db, now: Time.parse("2026-01-04T12:00:00Z"))
-    chart = view[:providers].first[:primary_window][:chart]
+    chart = view[:providers].first[:ranking_window][:chart]
 
     refute_nil chart[:projection]
     assert_in_delta 30.0, chart[:projection][:to][:y], 0.0001
@@ -51,7 +51,7 @@ class DashboardTest < AgentUsageTest
     insert_snapshot(collected_at: "2026-01-04T00:00:00Z", windows: [claude_window(remaining_percent: 70.0, collected_at: "2026-01-04T00:00:00Z")])
 
     view = AgentUsage::Dashboard.build(@db, now: Time.parse("2026-01-04T12:00:00Z"))
-    chart = view[:providers].first[:primary_window][:chart]
+    chart = view[:providers].first[:ranking_window][:chart]
 
     assert_equal 2, chart[:actual].size
     inferred = chart[:actual].first
@@ -75,6 +75,51 @@ class DashboardTest < AgentUsageTest
 
     assert_equal %w[claude codex grok], view[:ranking]
     assert_equal "claude", view[:recommendation][:provider]
+  end
+
+  def test_ranking_uses_the_weekly_duration_window_not_the_json_literal_primary_flag
+    insert_snapshot(
+      collected_at: "2026-01-04T00:00:00Z",
+      windows: [
+        claude_window(remaining_percent: 60.0, collected_at: "2026-01-04T00:00:00Z"),
+        # This fixture's Codex snapshot reports "primary" as 5 hours
+        # (short-class) and "secondary" as weekly-class — one of the shapes
+        # Codex has been observed to use. Ranking must use the weekly one
+        # (50.0) by duration, not the literal-primary one (90.0).
+        codex_five_hour_window(remaining_percent: 90.0, collected_at: "2026-01-04T00:00:00Z"),
+        codex_weekly_window(remaining_percent: 50.0, collected_at: "2026-01-04T00:00:00Z"),
+        grok_window(remaining_percent: 26.5, collected_at: "2026-01-04T00:00:00Z"),
+      ],
+    )
+
+    view = AgentUsage::Dashboard.build(@db, now: Time.parse("2026-01-04T00:00:00Z"))
+
+    assert_equal %w[claude codex grok], view[:ranking]
+    codex_view = view[:providers].find { |p| p[:provider] == "codex" }
+    assert_equal "secondary", codex_view[:ranking_window][:window_key]
+    assert_in_delta 50.0, codex_view[:ranking_window][:remaining_percent], 0.0001
+  end
+
+  def test_comparison_groups_windows_by_duration_class_across_providers
+    insert_snapshot(
+      collected_at: "2026-01-04T00:00:00Z",
+      windows: [
+        claude_window(remaining_percent: 60.0, collected_at: "2026-01-04T00:00:00Z"),
+        codex_five_hour_window(remaining_percent: 90.0, collected_at: "2026-01-04T00:00:00Z"),
+        codex_weekly_window(remaining_percent: 50.0, collected_at: "2026-01-04T00:00:00Z"),
+        grok_window(remaining_percent: 26.5, collected_at: "2026-01-04T00:00:00Z"),
+      ],
+    )
+
+    view = AgentUsage::Dashboard.build(@db, now: Time.parse("2026-01-04T00:00:00Z"))
+
+    assert_equal %w[claude codex grok], view[:comparison][:weekly].map { |e| e[:provider] }.sort
+    assert_equal %w[codex], view[:comparison][:short].map { |e| e[:provider] }.sort
+
+    codex_weekly = view[:comparison][:weekly].find { |e| e[:provider] == "codex" }
+    assert_equal "secondary", codex_weekly[:window_key]
+    codex_short = view[:comparison][:short].find { |e| e[:provider] == "codex" }
+    assert_equal "primary", codex_short[:window_key]
   end
 
   def test_surfaces_errors_and_completeness_from_the_latest_snapshot
@@ -118,6 +163,32 @@ class DashboardTest < AgentUsageTest
 
   def codex_window(remaining_percent:, collected_at:)
     claude_window(remaining_percent: remaining_percent, collected_at: collected_at).merge(provider: "codex", window_key: "primary")
+  end
+
+  def codex_five_hour_window(remaining_percent:, collected_at:)
+    {
+      provider: "codex",
+      window_key: "primary",
+      primary_window: true,
+      period_start: "2026-01-03T19:00:00Z",
+      period_end: "2026-01-04T00:00:00Z",
+      used_percent: 100.0 - remaining_percent,
+      remaining_percent: remaining_percent,
+      collected_at: collected_at,
+    }
+  end
+
+  def codex_weekly_window(remaining_percent:, collected_at:)
+    {
+      provider: "codex",
+      window_key: "secondary",
+      primary_window: false,
+      period_start: "2026-01-01T00:00:00Z",
+      period_end: "2026-01-08T00:00:00Z",
+      used_percent: 100.0 - remaining_percent,
+      remaining_percent: remaining_percent,
+      collected_at: collected_at,
+    }
   end
 
   def grok_window(remaining_percent:, collected_at:)

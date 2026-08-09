@@ -7,3 +7,11 @@ Rake::TestTask.new(:test) do |t|
 end
 
 task default: :test
+
+desc "Rebuild window_observations from raw_snapshots using the current normalizer"
+task :reprocess do
+  $LOAD_PATH.unshift(File.expand_path("lib", __dir__))
+  require "agent_usage/reprocessor"
+  result = AgentUsage::Reprocessor.run
+  puts "Reprocessed #{result[:snapshots]} snapshot(s) into #{result[:observations]} window observation(s)."
+end

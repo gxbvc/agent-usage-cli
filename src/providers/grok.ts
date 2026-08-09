@@ -49,12 +49,15 @@ export function normalizeGrokResponses(
   };
 
   const config = optionalObject(billingValue.config) ?? {};
+  // config.creditUsagePercent is the percent of the plan's weekly allowance
+  // already USED (100 = fully used, 0 remaining), matching what `/usage`
+  // shows in Grok Build. Do not treat it as remaining allowance.
   const creditUsagePercent = numberValue(config.creditUsagePercent);
   const usage: Record<string, unknown> = {};
   if (creditUsagePercent !== undefined) {
     usage.creditUsagePercent = creditUsagePercent;
-    usage.remainingPercent = creditUsagePercent;
-    usage.usedPercent = 100 - creditUsagePercent;
+    usage.usedPercent = creditUsagePercent;
+    usage.remainingPercent = 100 - creditUsagePercent;
   }
 
   const currentPeriod = period(config.currentPeriod);

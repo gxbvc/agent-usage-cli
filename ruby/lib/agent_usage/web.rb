@@ -74,8 +74,16 @@ module AgentUsage
       (request.env["HTTP_ACCEPT"] || "").include?("application/json")
     end
 
-    def render_chart(window_view, dom_id)
-      Chart.render(window_view, dom_id: dom_id)
+    def render_comparison_chart(entries, dom_id, section_label)
+      Chart.render_comparison(entries, dom_id: dom_id, section_label: section_label)
+    end
+
+    PROVIDER_LOGOS = { "claude" => "claude.svg", "codex" => "codex.svg", "grok" => "grok.png" }.freeze
+
+    # nil for a provider with no locally vendored logo (a future provider
+    # this dashboard doesn't recognize yet) so the view can skip the <img>.
+    def provider_logo(provider)
+      PROVIDER_LOGOS[provider.to_s]
     end
 
     # Provider window keys and error messages ultimately originate from

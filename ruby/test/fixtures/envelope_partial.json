@@ -1,7 +1,7 @@
 {
   "ok": true,
   "data": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "observedAt": "2026-01-01T00:15:00.000Z",
     "complete": false,
     "providers": {

@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+ENV["BUNDLE_GEMFILE"] ||= File.expand_path("../Gemfile", __dir__)
+require "bundler/setup"
+require "json"
+require_relative "../lib/agent_usage/reprocessor"
+
+result = AgentUsage::Reprocessor.run
+puts JSON.generate(ok: true, snapshots: result[:snapshots], observations: result[:observations])

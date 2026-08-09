@@ -43,7 +43,7 @@ Options:
 Successful queries and partial results use this envelope:
 
 ```json
-{"ok":true,"data":{"schemaVersion":1,"observedAt":"2026-08-09T04:00:00.000Z","complete":false,"providers":{"claude":{"cli":{"command":"claude","version":"1.2.3"},"account":{},"usage":{}}},"errors":[{"provider":"codex","code":"CLI_NOT_FOUND","message":"codex is not installed or is not on PATH"}]}}
+{"ok":true,"data":{"schemaVersion":2,"observedAt":"2026-08-09T04:00:00.000Z","complete":false,"providers":{"claude":{"cli":{"command":"claude","version":"1.2.3"},"account":{},"usage":{}}},"errors":[{"provider":"codex","code":"CLI_NOT_FOUND","message":"codex is not installed or is not on PATH"}]}}
 ```
 
 `schemaVersion` identifies the output contract. `observedAt` records when collection finished. `complete` is false when a selected provider fails. Successful provider data remains available in `providers`. Each provider keeps separate usage windows rather than combining them into one total. Missing values are omitted instead of reported as zero.
@@ -52,7 +52,7 @@ Successful queries and partial results use this envelope:
 
 - Claude account metadata comes from `claude auth status --json`. The OAuth token is read from the macOS Keychain with `security` and used only in memory for the Anthropic usage request.
 - Codex uses the newline JSON protocol from `codex app-server` to read the account, rate limits, and usage summary.
-- Grok uses newline JSON-RPC from `grok agent stdio` to read subscription and billing data. Grok reports `config.creditUsagePercent` as the remaining weekly allowance shown by `/usage`. The output preserves that value as `creditUsagePercent` and `remainingPercent`, then derives `usedPercent` as `100 - remainingPercent`. It also includes the plan tier, period dates, unified billing status, and credit amounts in cents and dollars when reported.
+- Grok uses newline JSON-RPC from `grok agent stdio` to read subscription and billing data. Grok reports `config.creditUsagePercent` as the percent of the weekly allowance already **used** (100 = fully used, 0 remaining), matching what `/usage` shows. The output preserves that value as `creditUsagePercent`, copies it to `usedPercent`, and derives `remainingPercent` as `100 - usedPercent`. It also includes the plan tier, period dates, unified billing status, and credit amounts in cents and dollars when reported.
 - Each provider CLI version is read with `--version`. These commands do not start model inference.
 - Providers run concurrently. Subprocesses and network calls have a 20-second timeout. Timed-out children receive a short graceful shutdown and then a forced kill if needed.
 
@@ -73,6 +73,8 @@ Tests use fixtures, fake adapters, and temporary local Node child processes. The
 `ruby/` adds a local history collector and a burn-down dashboard on top of the CLI above. It does not change the CLI's contract or output; it only runs `agent-usage-cli` on a timer, stores the JSON it prints, and renders it. Nothing here calls a model or a provider CLI directly — the Ruby side only ever shells out to the existing `agent-usage-cli`.
 
 The dashboard answers one question: which subscription (Claude, Codex, or Grok) has the most unused plan allowance relative to time remaining in its current billing window. It compares **allowance percentage**, not raw token counts, because token counts are not comparable across providers.
+
+Two full-width overlay charts drive this: a **weekly subscription comparison** (each provider's ~7-day window) and a **short-window comparison** (~1–8 hour windows, e.g. Claude's 5-hour limit). Windows are grouped into these two charts by their actual duration, not by a provider's JSON field names — Codex's weekly window has been seen reported as both `secondary` (alongside a 5-hour `primary`) and `primary` depending on the account, so a future provider that reports a 5-hour-and-weekly pair either way is still classified correctly automatically. Ranking and the "Use X next" recommendation always use each provider's weekly-class window. Model-specific limits (Claude Opus/Sonnet, Codex per-model `rateLimitsByLimitId` entries) show as compact secondary metrics on each provider's card, not as their own charts.
 
 ### Setup
 
@@ -110,6 +112,19 @@ Logs land in `~/Library/Logs/agent-usage-cli/`. The plist templates in `launchd/
 ### Data location
 
 History is stored in a local SQLite database at `~/Library/Application Support/agent-usage-cli/usage.sqlite3` by default. Set `AGENT_USAGE_DB` to use a different path (tests always use a temporary one). The database keeps every raw `agent-usage-cli` response alongside normalized per-window rows, so it can be reprocessed if the normalization logic changes later.
+
+If you collected data before the Grok percent-used fix (schema/normalizer version bump), repair existing history once with:
+
+```bash
+cd ruby
+bin/reprocess            # or: bundle exec rake reprocess
+```
+
+This deletes and rebuilds `window_observations` from the immutable `raw_snapshots` using the current normalizer. It never modifies `raw_snapshots`, and it's safe to run any number of times.
+
+### Logos
+
+`ruby/public/logos/` vendors each provider's mark locally (`claude.svg`, `codex.svg`, `grok.png`) — no CDN is loaded at request time. See `ruby/public/logos/SOURCES.md` for where each file came from.
 
 ### Chrome new-tab extension
 
