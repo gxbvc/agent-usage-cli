@@ -17,7 +17,7 @@ agent-usage-cli --strict                     # Exit 1 if any selected provider f
 ## Output
 
 ```json
-{"ok":true,"data":{"complete":true,"providers":{},"errors":[]}}
+{"ok":true,"data":{"schemaVersion":1,"observedAt":"2026-08-09T04:00:00.000Z","complete":true,"providers":{},"errors":[]}}
 ```
 
 Partial failures set `complete` to false and add a stable, secret-safe entry to `errors`. Successful providers remain in `providers`. Default mode exits 0 for partial failures. `--strict` exits 1.

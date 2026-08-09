@@ -20,6 +20,8 @@ export interface ProviderResult {
 }
 
 export interface UsageData {
+  schemaVersion: 1;
+  observedAt: string;
   complete: boolean;
   providers: Partial<Record<ProviderName, ProviderResult>>;
   errors: ProviderError[];

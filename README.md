@@ -43,10 +43,10 @@ Options:
 Successful queries and partial results use this envelope:
 
 ```json
-{"ok":true,"data":{"complete":false,"providers":{"claude":{"cli":{"command":"claude","version":"1.2.3"},"account":{},"usage":{}}},"errors":[{"provider":"codex","code":"CLI_NOT_FOUND","message":"codex is not installed or is not on PATH"}]}}
+{"ok":true,"data":{"schemaVersion":1,"observedAt":"2026-08-09T04:00:00.000Z","complete":false,"providers":{"claude":{"cli":{"command":"claude","version":"1.2.3"},"account":{},"usage":{}}},"errors":[{"provider":"codex","code":"CLI_NOT_FOUND","message":"codex is not installed or is not on PATH"}]}}
 ```
 
-`complete` is false when a selected provider fails. Successful provider data remains available in `providers`. Each provider keeps separate usage windows rather than combining them into one total. Missing values are omitted instead of reported as zero.
+`schemaVersion` identifies the output contract. `observedAt` records when collection finished. `complete` is false when a selected provider fails. Successful provider data remains available in `providers`. Each provider keeps separate usage windows rather than combining them into one total. Missing values are omitted instead of reported as zero.
 
 ## How it works
 

@@ -27,6 +27,8 @@ test("partial failures preserve successful providers in a stable envelope", asyn
   );
 
   assert.equal(envelope.ok, true);
+  assert.equal(envelope.data.schemaVersion, 1);
+  assert.equal(Number.isNaN(Date.parse(envelope.data.observedAt)), false);
   assert.equal(envelope.data.complete, false);
   assert.deepEqual(Object.keys(envelope.data.providers), ["claude", "grok"]);
   assert.deepEqual(envelope.data.errors, [{
