@@ -67,3 +67,58 @@ node dist/cli.js --help
 ```
 
 Tests use fixtures, fake adapters, and temporary local Node child processes. They do not access real credentials or run provider CLIs.
+
+## Usage dashboard (Ruby)
+
+`ruby/` adds a local history collector and a burn-down dashboard on top of the CLI above. It does not change the CLI's contract or output; it only runs `agent-usage-cli` on a timer, stores the JSON it prints, and renders it. Nothing here calls a model or a provider CLI directly — the Ruby side only ever shells out to the existing `agent-usage-cli`.
+
+The dashboard answers one question: which subscription (Claude, Codex, or Grok) has the most unused plan allowance relative to time remaining in its current billing window. It compares **allowance percentage**, not raw token counts, because token counts are not comparable across providers.
+
+### Setup
+
+```bash
+cd ruby
+rbenv install --skip-existing   # uses the version in .ruby-version
+bundle install
+```
+
+### Run it by hand
+
+```bash
+cd ruby
+bin/collector          # one collection: runs agent-usage-cli, stores the snapshot
+bin/server              # starts the dashboard at http://127.0.0.1:4570
+```
+
+Open `http://127.0.0.1:4570/` in a browser. `GET /health` and `GET /api/dashboard.json` are also available; `POST /api/collect` triggers a manual collection from the page's "Collect now" button.
+
+### Run it automatically (launchd)
+
+```bash
+cd ruby
+bin/install-services    # renders and (re)installs both launchd agents for this machine
+bin/uninstall-services  # stops and unloads them; the database is left in place
+```
+
+This installs two per-user LaunchAgents:
+
+- `co.gen.agent-usage-collector` — runs `bin/collector` every 15 minutes.
+- `co.gen.agent-usage-web` — keeps `bin/server` running and restarts it if it dies.
+
+Logs land in `~/Library/Logs/agent-usage-cli/`. The plist templates in `launchd/` are checked in without any machine-specific paths; `bin/install-services` fills in absolute paths (Ruby, Bundler, Node, and each provider CLI's directory) at install time.
+
+### Data location
+
+History is stored in a local SQLite database at `~/Library/Application Support/agent-usage-cli/usage.sqlite3` by default. Set `AGENT_USAGE_DB` to use a different path (tests always use a temporary one). The database keeps every raw `agent-usage-cli` response alongside normalized per-window rows, so it can be reprocessed if the normalization logic changes later.
+
+### Chrome new-tab extension
+
+`chrome-new-tab/` is an unpacked Manifest V3 extension that checks `http://127.0.0.1:4570/health` and opens the dashboard as your new tab. If the local server isn't running, it shows a fallback page with the commands above instead of failing silently.
+
+To install it: open `chrome://extensions`, enable Developer Mode, choose "Load unpacked," and select the `chrome-new-tab/` directory.
+
+### Notes
+
+- The server binds to `127.0.0.1:4570` only — it is never reachable from the network.
+- Anthropic's and xAI's (Grok) usage APIs are undocumented and can change without notice; if a provider's response shape changes, `agent-usage-cli` itself will start returning that provider's data under `errors` instead of `providers`, and the dashboard will show a partial-data banner rather than failing.
+- Ruby tests (`ruby/test/`) use fixtures and injected fake collector runners. They never invoke a real provider CLI, Keychain, or network request.

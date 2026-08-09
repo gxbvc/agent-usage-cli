@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Usage</title>
+  <link rel="stylesheet" href="/app.css" />
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <div class="page-header-title">
+        <h1>Agent Usage</h1>
+        <p class="muted">Claude, Codex, and Grok subscription burn-down</p>
+      </div>
+      <form id="collect-now" method="post" action="/api/collect">
+        <button type="submit">Collect now</button>
+      </form>
+    </header>
+
+    <% if @view[:stale] %>
+      <div class="banner banner-warning" role="status">
+        <strong>Stale data.</strong>
+        Last collected <%= format_time(@view[:collected_at]) %>. The collector service may not be running
+        &mdash; see <code>ruby/AGENTS.md</code> for <code>bin/install-services</code>.
+      </div>
+    <% end %>
+
+    <% unless @view[:errors].empty? %>
+      <div class="banner banner-error" role="status">
+        <strong>Partial data.</strong>
+        <% @view[:errors].each do |error| %>
+          <%= h(error["provider"]) %>: <%= h(error["message"]) %>.
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if @view[:providers].empty? %>
+      <div class="empty-state">
+        <h2>No usage data yet</h2>
+        <p class="muted">
+          Run the collector once to populate the dashboard, or click "Collect now" above.
+        </p>
+        <pre><code>cd ruby &amp;&amp; bin/collector</code></pre>
+      </div>
+    <% else %>
+      <section class="recommendation" aria-live="polite">
+        <% if @view[:recommendation] %>
+          <p class="recommendation-headline">Use <%= @view[:recommendation][:label] %> next</p>
+          <p class="recommendation-reason"><%= @view[:recommendation][:reason] %></p>
+        <% else %>
+          <p class="recommendation-headline">No recommendation yet</p>
+          <p class="recommendation-reason muted">Primary window data is not available for any provider.</p>
+        <% end %>
+      </section>
+
+      <section class="provider-grid">
+        <% @view[:providers].sort_by { |p| @view[:ranking].index(p[:provider]) || 99 }.each_with_index do |provider, index| %>
+          <article class="provider-card" aria-labelledby="provider-<%= provider[:provider] %>-title">
+            <header class="provider-card-header">
+              <span class="rank-badge" aria-hidden="true"><%= @view[:ranking].include?(provider[:provider]) ? "##{@view[:ranking].index(provider[:provider]) + 1}" : "—" %></span>
+              <h2 id="provider-<%= provider[:provider] %>-title"><%= provider[:label] %></h2>
+            </header>
+
+            <% primary = provider[:primary_window] %>
+            <% if primary %>
+              <div class="metric-row">
+                <div class="metric">
+                  <span class="metric-label">Remaining</span>
+                  <span class="metric-value"><%= format_percent(primary[:remaining_percent]) %></span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Gap vs. ideal</span>
+                  <span class="metric-value <%= primary[:gap_points] >= 0 ? 'positive' : 'negative' %>">
+                    <%= primary[:gap_points] >= 0 ? "&#9650; ahead" : "&#9660; behind" %>
+                    <%= format_signed_points(primary[:gap_points]) %>
+                  </span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Required burn</span>
+                  <span class="metric-value"><%= format_burn(primary[:required_daily_burn]) %></span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Resets in</span>
+                  <span class="metric-value" data-reset-at="<%= primary[:period_end] %>">
+                    <%= format_duration(primary[:reset_countdown_seconds]) %>
+                  </span>
+                </div>
+              </div>
+
+              <figure class="chart-figure">
+                <figcaption class="chart-caption"><%= h(primary[:label]) %> window (primary, ranking)</figcaption>
+                <%= render_chart(primary, "chart-#{provider[:provider]}-#{primary[:window_key]}") %>
+              </figure>
+            <% else %>
+              <p class="muted">No primary window data.</p>
+            <% end %>
+
+            <% unless provider[:secondary_windows].empty? %>
+              <details class="secondary-windows">
+                <summary>Secondary windows (<%= provider[:secondary_windows].size %>)</summary>
+                <% provider[:secondary_windows].each do |window| %>
+                  <div class="secondary-window">
+                    <div class="metric-row">
+                      <div class="metric">
+                        <span class="metric-label"><%= h(window[:label]) %> remaining</span>
+                        <span class="metric-value"><%= format_percent(window[:remaining_percent]) %></span>
+                      </div>
+                      <div class="metric">
+                        <span class="metric-label">Gap</span>
+                        <span class="metric-value <%= window[:gap_points] >= 0 ? 'positive' : 'negative' %>">
+                          <%= format_signed_points(window[:gap_points]) %>
+                        </span>
+                      </div>
+                      <div class="metric">
+                        <span class="metric-label">Resets in</span>
+                        <span class="metric-value" data-reset-at="<%= window[:period_end] %>">
+                          <%= format_duration(window[:reset_countdown_seconds]) %>
+                        </span>
+                      </div>
+                    </div>
+                    <figure class="chart-figure chart-figure-small">
+                      <%= render_chart(window, "chart-#{provider[:provider]}-#{window[:window_key]}") %>
+                    </figure>
+                  </div>
+                <% end %>
+              </details>
+            <% end %>
+          </article>
+        <% end %>
+      </section>
+    <% end %>
+
+    <footer class="page-footer">
+      <p class="muted">
+        Observed <%= format_time(@view[:observed_at]) %> &middot; collected <%= format_time(@view[:collected_at]) %>
+        &middot; <%= @view[:complete] ? "all providers reported" : "partial result" %>
+      </p>
+      <p class="legend muted">
+        <span class="legend-item"><span class="legend-swatch legend-ideal"></span> ideal pace</span>
+        <span class="legend-item"><span class="legend-swatch legend-actual"></span> actual</span>
+        <span class="legend-item"><span class="legend-swatch legend-inferred"></span> inferred start</span>
+        <span class="legend-item"><span class="legend-swatch legend-projection"></span> projection</span>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

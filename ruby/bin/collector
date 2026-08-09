@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+ENV["BUNDLE_GEMFILE"] ||= File.expand_path("../Gemfile", __dir__)
+require "bundler/setup"
+require "json"
+require_relative "../lib/agent_usage/collector"
+
+result = AgentUsage::Collector.new.run
+if result[:locked]
+  warn "agent-usage-collector: another collection is already in progress, skipping"
+  exit 0
+end
+puts JSON.generate(ok: true, stored: result[:stored] == true)

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Usage</title>
+  <link rel="stylesheet" href="newtab.css" />
+</head>
+<body>
+  <main id="fallback" class="fallback" hidden>
+    <h1>Agent Usage dashboard is not running</h1>
+    <p class="muted">Checked <code>http://127.0.0.1:4570/health</code> and got no response.</p>
+
+    <p>Start the local web service once, in a terminal:</p>
+    <pre><code>cd ~/tools/agent-usage-cli/ruby &amp;&amp; bin/server</code></pre>
+
+    <p>Or install it to run automatically in the background:</p>
+    <pre><code>cd ~/tools/agent-usage-cli/ruby &amp;&amp; bin/install-services</code></pre>
+
+    <button id="retry" type="button">Retry</button>
+  </main>
+  <script src="newtab.js"></script>
+</body>
+</html>

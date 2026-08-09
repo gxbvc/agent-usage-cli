@@ -1,0 +1,61 @@
+{
+  "ok": true,
+  "data": {
+    "schemaVersion": 1,
+    "observedAt": "2026-01-01T00:00:00.000Z",
+    "complete": true,
+    "providers": {
+      "claude": {
+        "cli": { "command": "claude", "version": "1.2.3" },
+        "account": { "loggedIn": true, "email": "person@example.com" },
+        "usage": {
+          "windows": {
+            "five_hour": { "utilization": 20, "resetsAt": "2026-01-01T05:00:00.000Z" },
+            "seven_day": { "utilization": 40, "resetsAt": "2026-01-08T00:00:00.000Z" },
+            "seven_day_opus": null,
+            "seven_day_sonnet": { "utilization": 10, "resetsAt": "2026-01-08T00:00:00.000Z" }
+          },
+          "extraUsage": { "is_enabled": true }
+        }
+      },
+      "codex": {
+        "cli": { "command": "codex", "version": "2.0.0" },
+        "account": { "type": "chatgpt", "email": "person@example.com", "planType": "pro" },
+        "usage": {
+          "rateLimits": {
+            "rateLimits": {
+              "primary": { "usedPercent": 30, "windowDurationMins": 300, "resetsAt": "2026-01-01T05:00:00.000Z" },
+              "secondary": { "usedPercent": 50, "windowDurationMins": 10080, "resetsAt": "2026-01-08T00:00:00.000Z" }
+            },
+            "rateLimitsByLimitId": {
+              "codex": {
+                "limitId": "codex",
+                "limitName": "GPT-5.1-Codex",
+                "primary": { "usedPercent": 30, "windowDurationMins": 300, "resetsAt": "2026-01-01T05:00:00.000Z" },
+                "secondary": { "usedPercent": 50, "windowDurationMins": 10080, "resetsAt": "2026-01-08T00:00:00.000Z" }
+              },
+              "codex_bengalfox": {
+                "limitId": "codex_bengalfox",
+                "limitName": "GPT-5.3-Codex-Spark",
+                "primary": { "usedPercent": 55, "windowDurationMins": 10080, "resetsAt": "2026-01-09T00:00:00.000Z" }
+              }
+            },
+            "credits": { "hasCredits": true }
+          },
+          "summary": { "inputTokens": 100 }
+        }
+      },
+      "grok": {
+        "cli": { "command": "grok", "version": "0.9.0" },
+        "account": { "authenticated": true, "email": "person@example.com" },
+        "usage": {
+          "usedPercent": 26.5,
+          "remainingPercent": 73.5,
+          "creditUsagePercent": 73.5,
+          "currentPeriod": { "type": "weekly", "start": "2026-01-01T00:00:00.000Z", "end": "2026-01-08T00:00:00.000Z" }
+        }
+      }
+    },
+    "errors": []
+  }
+}

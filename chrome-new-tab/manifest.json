@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Agent Usage Dashboard",
+  "version": "1.0.0",
+  "description": "Opens the local agent-usage-cli dashboard (127.0.0.1:4570) as your new tab.",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "host_permissions": ["http://127.0.0.1:4570/*"]
+}

@@ -8,7 +8,16 @@
       "primary": { "usedPercent": 17, "windowDurationMins": 300, "resetsAt": 1787155200 }
     },
     "rateLimitsByLimitId": {
-      "weekly": { "usedPercent": 31, "windowDurationMins": 10080, "resetsAt": 1787760000 }
+      "codex": {
+        "limitId": "codex",
+        "limitName": "GPT-5.1-Codex",
+        "primary": { "usedPercent": 17, "windowDurationMins": 300, "resetsAt": 1787155200 }
+      },
+      "codex_mini": {
+        "limitId": "codex_mini",
+        "limitName": "GPT-5.1-Codex-Mini",
+        "primary": { "usedPercent": 31, "windowDurationMins": 10080, "resetsAt": 1787760000 }
+      }
     },
     "credits": { "hasCredits": true, "unlimited": false, "balance": "42.50" }
   },

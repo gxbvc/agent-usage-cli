@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "data": {
+    "schemaVersion": 1,
+    "observedAt": "2026-01-01T00:15:00.000Z",
+    "complete": false,
+    "providers": {
+      "claude": {
+        "cli": { "command": "claude", "version": "1.2.3" },
+        "account": { "loggedIn": true, "email": "person@example.com" },
+        "usage": {
+          "windows": {
+            "five_hour": { "utilization": 22, "resetsAt": "2026-01-01T05:00:00.000Z" },
+            "seven_day": { "utilization": 42, "resetsAt": "2026-01-08T00:00:00.000Z" }
+          }
+        }
+      }
+    },
+    "errors": [
+      { "provider": "codex", "code": "CLI_NOT_FOUND", "message": "codex is not installed or is not on PATH" },
+      { "provider": "grok", "code": "AUTH_NOT_LOGGED_IN", "message": "Grok Build is not logged in" }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+ENV["BUNDLE_GEMFILE"] ||= File.expand_path("../Gemfile", __dir__)
+require "bundler/setup"
+require_relative "../lib/agent_usage/launchd"
+
+AgentUsage::Launchd.install!
+puts "Installed and started co.gen.agent-usage-collector and co.gen.agent-usage-web"
+puts "Logs: #{AgentUsage::Launchd::LOG_DIR}"
