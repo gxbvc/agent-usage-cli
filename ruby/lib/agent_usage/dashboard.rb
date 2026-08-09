@@ -46,7 +46,11 @@ module AgentUsage
 
       provider_views = providers_present.filter_map { |provider| build_provider_view(db, provider, latest, now) }
       ranked = provider_views.select { |view| view[:ranking_window] }
-                              .sort_by { |view| [-view[:ranking_window][:gap_points], -(view[:ranking_window][:required_daily_burn] || 0)] }
+                              .sort_by do |view|
+        window = view[:ranking_window]
+        depleted = window[:remaining_percent] <= 0 ? 1 : 0
+        [depleted, -window[:gap_points], -(window[:required_daily_burn] || 0)]
+      end
 
       {
         generated_at: now.utc.iso8601,

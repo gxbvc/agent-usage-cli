@@ -77,6 +77,21 @@ class DashboardTest < AgentUsageTest
     assert_equal "claude", view[:recommendation][:provider]
   end
 
+  def test_depleted_provider_ranks_after_providers_with_allowance_remaining
+    insert_snapshot(
+      collected_at: "2026-01-04T00:00:00Z",
+      windows: [
+        claude_window(remaining_percent: 80.0, collected_at: "2026-01-04T00:00:00Z"),
+        codex_window(remaining_percent: 20.0, collected_at: "2026-01-04T00:00:00Z"),
+        grok_window(remaining_percent: 0.0, collected_at: "2026-01-04T00:00:00Z"),
+      ],
+    )
+
+    view = AgentUsage::Dashboard.build(@db, now: Time.parse("2026-01-04T00:00:00Z"))
+
+    assert_equal %w[claude codex grok], view[:ranking]
+  end
+
   def test_ranking_uses_the_weekly_duration_window_not_the_json_literal_primary_flag
     insert_snapshot(
       collected_at: "2026-01-04T00:00:00Z",
