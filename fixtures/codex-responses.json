@@ -1,0 +1,22 @@
+{
+  "account": {
+    "account": { "type": "chatgpt", "email": "person@example.com", "planType": "pro" },
+    "requiresOpenaiAuth": true
+  },
+  "rateLimits": {
+    "rateLimits": {
+      "primary": { "usedPercent": 17, "windowDurationMins": 300, "resetsAt": 1787155200 }
+    },
+    "rateLimitsByLimitId": {
+      "weekly": { "usedPercent": 31, "windowDurationMins": 10080, "resetsAt": 1787760000 }
+    },
+    "credits": { "hasCredits": true, "unlimited": false, "balance": "42.50" }
+  },
+  "usage": {
+    "summary": { "inputTokens": 1200, "outputTokens": 300 },
+    "dailyUsageBuckets": [
+      { "day": "2026-08-18", "inputTokens": 500, "outputTokens": 100 },
+      { "day": "2026-08-19", "inputTokens": 700, "outputTokens": 200 }
+    ]
+  }
+}

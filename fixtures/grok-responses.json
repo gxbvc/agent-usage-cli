@@ -1,0 +1,29 @@
+{
+  "auth": {
+    "authenticated": true,
+    "meta": {
+      "email": "person@example.com",
+      "auth_mode": "oauth",
+      "team_id": "team_123",
+      "team_name": "Example",
+      "team_role": "member",
+      "is_zdr": false,
+      "coding_data_retention_opt_out": true,
+      "show_resolved_model": true,
+      "subscription_tier": "supergrok"
+    }
+  },
+  "billing": {
+    "config": {
+      "creditUsagePercent": 73.5,
+      "currentPeriod": { "type": "weekly", "start": 1785542400, "end": 1786147200 },
+      "onDemandCap": { "val": 2500, "currency": "USD" },
+      "onDemandUsed": { "val": 499, "currency": "USD" },
+      "prepaidBalance": { "val": 1234, "currency": "USD" },
+      "isUnifiedBillingUser": true,
+      "billingPeriodStart": 1782864000,
+      "billingPeriodEnd": 1785542400
+    },
+    "subscription_tier": "supergrok"
+  }
+}
