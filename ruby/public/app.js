@@ -84,18 +84,6 @@
     );
   }
 
-  function setupCollectButton() {
-    var form = document.getElementById("collect-now");
-    if (!form) return;
-    form.addEventListener("submit", function () {
-      var button = form.querySelector("button");
-      if (button) {
-        button.disabled = true;
-        button.textContent = "Collecting…";
-      }
-    });
-  }
-
   function setupAutoRefresh() {
     setInterval(function () {
       if (document.visibilityState === "visible") window.location.reload();
@@ -104,7 +92,6 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     setupTooltips();
-    setupCollectButton();
     setupAutoRefresh();
     tickCountdowns();
     setInterval(tickCountdowns, COUNTDOWN_TICK_MS);

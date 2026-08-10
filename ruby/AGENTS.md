@@ -47,7 +47,7 @@ Templates live in `../launchd/*.plist.erb` and are checked in with no machine-sp
 
 ## Logos
 
-`public/logos/` vendors each provider's mark locally (`claude.svg`, `codex.svg`, `grok.png`) so the dashboard has zero CDN/runtime dependency. Sources are documented in `public/logos/SOURCES.md`. Both SVGs are checked for `<script>`/`<foreignObject>`/inline event handlers before being committed.
+`public/logos/` vendors each provider's mark locally (`claude.svg`, `codex.png`, `grok.png`) so the dashboard has zero CDN/runtime dependency. Sources are documented in `public/logos/SOURCES.md`. `claude.svg` is checked for `<script>`/`<foreignObject>`/inline event handlers before being committed. The comparison charts (`lib/agent_usage/chart.rb`) draw these same logos as selected point markers instead of generic circles, squares, and triangles. History markers are thinned by SVG pixel distance so dense 15-minute observations stay readable. The current point is larger, and inferred and projected points have dashed rings. An unrecognized future provider with no vendored logo falls back to a plain shape marker.
 
 ## Chrome new-tab
 

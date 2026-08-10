@@ -78,12 +78,12 @@ module AgentUsage
       Chart.render_comparison(entries, dom_id: dom_id, section_label: section_label)
     end
 
-    PROVIDER_LOGOS = { "claude" => "claude.svg", "codex" => "codex.svg", "grok" => "grok.png" }.freeze
-
     # nil for a provider with no locally vendored logo (a future provider
     # this dashboard doesn't recognize yet) so the view can skip the <img>.
+    # Delegates to Chart's mapping (public/logos/) so there's one source of
+    # truth shared with the comparison-chart markers.
     def provider_logo(provider)
-      PROVIDER_LOGOS[provider.to_s]
+      Chart.provider_logo_file(provider)
     end
 
     # Provider window keys and error messages ultimately originate from

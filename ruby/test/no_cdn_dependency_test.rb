@@ -21,9 +21,14 @@ class NoCdnDependencyTest < AgentUsageTest
     refute_match RUNTIME_ASSET_PATTERN, js_source
   end
 
+  def test_chart_rb_never_references_an_external_url
+    chart_source = File.read(File.join(__dir__, "..", "lib", "agent_usage", "chart.rb"))
+    refute_match RUNTIME_ASSET_PATTERN, chart_source
+  end
+
   def test_provider_logos_are_vendored_locally_not_fetched_from_a_cdn
     logos_dir = File.join(__dir__, "..", "public", "logos")
-    %w[claude.svg codex.svg grok.png].each do |file|
+    %w[claude.svg codex.png grok.png].each do |file|
       path = File.join(logos_dir, file)
       assert File.exist?(path), "expected #{file} to be vendored under ruby/public/logos"
     end

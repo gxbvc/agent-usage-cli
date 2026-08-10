@@ -74,7 +74,9 @@ Tests use fixtures, fake adapters, and temporary local Node child processes. The
 
 The dashboard answers one question: which subscription (Claude, Codex, or Grok) has the most unused plan allowance relative to time remaining in its current billing window. It compares **allowance percentage**, not raw token counts, because token counts are not comparable across providers.
 
-Two full-width overlay charts drive this: a **weekly subscription comparison** (each provider's ~7-day window) and a **short-window comparison** (~1–8 hour windows, e.g. Claude's 5-hour limit). Windows are grouped into these two charts by their actual duration, not by a provider's JSON field names — Codex's weekly window has been seen reported as both `secondary` (alongside a 5-hour `primary`) and `primary` depending on the account, so a future provider that reports a 5-hour-and-weekly pair either way is still classified correctly automatically. Ranking and the "Use X next" recommendation always use each provider's weekly-class window. Model-specific limits (Claude Opus/Sonnet, Codex per-model `rateLimitsByLimitId` entries) show as compact secondary metrics on each provider's card, not as their own charts.
+Two full-width overlay charts drive this: a **weekly subscription comparison** (each provider's ~7-day window) and a **short-window comparison** (~1–8 hour windows, e.g. Claude's 5-hour limit). Windows are grouped into these two charts by their actual duration, not by a provider's JSON field names — Codex's weekly window has been seen reported as both `secondary` (alongside a 5-hour `primary`) and `primary` depending on the account, so a future provider that reports a 5-hour-and-weekly pair either way is still classified correctly automatically. Ranking and the recommendation (exposed at `GET /api/dashboard.json`, `data.recommendation`) always use each provider's weekly-class window. Model-specific limits (Claude Opus/Sonnet, Codex per-model `rateLimitsByLimitId` entries) show as compact secondary metrics on each provider's card, not as their own charts.
+
+Each comparison chart's point markers are the provider's own vendored logo (small for history, clearly larger for the current point), not a generic shape; a provider projected forward from its recent pace also shows its projected remaining-at-reset percentage in that chart's legend.
 
 ### Setup
 
@@ -92,7 +94,7 @@ bin/collector          # one collection: runs agent-usage-cli, stores the snapsh
 bin/server              # starts the dashboard at http://127.0.0.1:4570
 ```
 
-Open `http://127.0.0.1:4570/` in a browser. `GET /health` and `GET /api/dashboard.json` are also available; `POST /api/collect` triggers a manual collection from the page's "Collect now" button.
+Open `http://127.0.0.1:4570/` in a browser. `GET /health` and `GET /api/dashboard.json` are also available; `POST /api/collect` triggers a manual collection (there is no button for it on the page — the collector service already runs one automatically every 15 minutes).
 
 ### Run it automatically (launchd)
 
@@ -124,7 +126,7 @@ This deletes and rebuilds `window_observations` from the immutable `raw_snapshot
 
 ### Logos
 
-`ruby/public/logos/` vendors each provider's mark locally (`claude.svg`, `codex.svg`, `grok.png`) — no CDN is loaded at request time. See `ruby/public/logos/SOURCES.md` for where each file came from.
+`ruby/public/logos/` vendors each provider's mark locally (`claude.svg`, `codex.png`, `grok.png`) — no CDN is loaded at request time. See `ruby/public/logos/SOURCES.md` for where each file came from.
 
 ### Chrome new-tab extension
 

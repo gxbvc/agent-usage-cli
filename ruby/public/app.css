@@ -141,25 +141,6 @@ pre {
   font-size: 1.6rem;
 }
 
-.page-header-title p {
-  margin: 0;
-}
-
-button {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-button:hover {
-  filter: brightness(1.08);
-}
-
-button:focus-visible,
 a:focus-visible,
 .chart-point:focus-visible,
 summary:focus-visible {
@@ -189,24 +170,6 @@ summary:focus-visible {
   border-radius: 12px;
   padding: 32px;
   text-align: center;
-}
-
-.recommendation {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px 24px;
-  margin-bottom: 24px;
-}
-
-.recommendation-headline {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin: 0 0 6px;
-}
-
-.recommendation-reason {
-  margin: 0;
 }
 
 .provider-grid {
@@ -322,6 +285,13 @@ summary:focus-visible {
   fill: none;
 }
 
+/* chart-point-* classes are shared by two kinds of markers drawn in the
+   comparison charts: the plain circle/rect/polygon fallback shapes (used
+   only when a provider has no vendored logo), and the logo <image>
+   markers chart.rb draws for known providers. fill/stroke/stroke-width
+   only affect the former (an <image> can't be tinted); opacity/filter
+   affect both, which is how state (inferred/current/projection) still
+   reads on a fixed-color vendored logo. */
 .chart-point {
   fill: var(--accent);
   cursor: pointer;
@@ -332,22 +302,52 @@ summary:focus-visible {
   stroke: var(--ideal);
   stroke-width: 2;
   stroke-dasharray: 2 2;
+  opacity: 0.55;
 }
 
 .chart-point-current {
   fill: var(--accent);
   stroke: var(--card-bg);
   stroke-width: 2;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .chart-point-projection {
   fill: var(--projection);
+  opacity: 0.85;
+}
+
+.chart-point-history {
+  opacity: 0.9;
+}
+
+/* Decorative circles drawn behind a logo marker (never focusable/
+   tooltipped themselves) to carry a state cue a fixed-color logo can't. */
+.chart-marker-ring {
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.chart-marker-ring-inferred {
+  stroke: var(--ideal);
+  stroke-dasharray: 2 2;
+}
+
+.chart-marker-ring-projection {
+  stroke: var(--projection);
+  stroke-dasharray: 3 4;
+}
+
+.chart-marker-halo {
+  opacity: 0.3;
 }
 
 /* Overlay comparison charts: one series per provider on a shared ideal
-   diagonal. Color alone never carries the distinction — each provider also
-   gets its own line dash pattern (set inline per SVG element) and marker
-   shape (circle/square/triangle/diamond, chosen in chart.rb). */
+   diagonal. Color alone never carries the distinction - each provider also
+   gets its own line dash pattern (set inline per SVG element) and its own
+   vendored logo as the point marker (chart.rb), falling back to a plain
+   shape (circle/square/triangle/diamond) only for an unrecognized future
+   provider with no local logo. */
 .comparison-section {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -359,11 +359,6 @@ summary:focus-visible {
 .comparison-section h2 {
   margin: 0 0 4px;
   font-size: 1.2rem;
-}
-
-.comparison-blurb {
-  margin: 0 0 14px;
-  max-width: 68ch;
 }
 
 .comparison-chart {
@@ -442,28 +437,6 @@ summary:focus-visible {
 
 .comparison-legend-text strong {
   color: var(--fg);
-}
-
-.legend-marker {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  flex: none;
-}
-
-.legend-marker-claude {
-  background: var(--claude-color);
-  border-radius: 50%;
-}
-
-.legend-marker-codex {
-  background: var(--codex-color);
-}
-
-.legend-marker-grok {
-  background: var(--grok-color);
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
 }
 
 .provider-logo {

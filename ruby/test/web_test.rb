@@ -62,7 +62,7 @@ class WebTest < AgentUsageTest
     assert_equal true, body["data"]["stored"]
   end
 
-  def test_dashboard_renders_recommendation_and_provider_cards_after_collection
+  def test_dashboard_renders_provider_cards_after_collection
     post "/api/collect"
     get "/"
 
@@ -71,7 +71,6 @@ class WebTest < AgentUsageTest
     # elapsed_fraction clamps to 1.0 for every provider and ranking reduces to
     # "highest remaining_percent wins" on each provider's weekly-class window:
     # Claude seven_day 60.0 > Codex secondary 50.0 > Grok currentPeriod 26.5.
-    assert_includes last_response.body, "Use Claude next"
     assert_includes last_response.body, "Claude"
     assert_includes last_response.body, "Codex"
     assert_includes last_response.body, "comparison-chart"
@@ -113,9 +112,75 @@ class WebTest < AgentUsageTest
   end
 
   def test_dashboard_page_serves_all_three_vendored_provider_logos
-    %w[claude.svg codex.svg grok.png].each do |file|
+    %w[claude.svg codex.png grok.png].each do |file|
       get "/logos/#{file}"
       assert last_response.ok?, "expected /logos/#{file} to be served locally"
     end
+  end
+
+  def test_dashboard_omits_the_recommendation_box_header_subtitle_and_collect_button
+    post "/api/collect"
+    get "/"
+
+    refute_includes last_response.body, "Use Claude next"
+    refute_includes last_response.body, "recommendation"
+    refute_includes last_response.body, "Claude, Codex, and Grok subscription burn-down"
+    refute_includes last_response.body, "Collect now"
+    refute_includes last_response.body, 'id="collect-now"'
+  end
+
+  def test_dashboard_omits_the_comparison_blurb_paragraphs
+    post "/api/collect"
+    get "/"
+
+    refute_includes last_response.body, "comparison-blurb"
+    refute_includes last_response.body, "normalized to cycle progress so different reset schedules"
+  end
+
+  def test_dashboard_json_still_exposes_the_recommendation_even_though_the_ui_box_is_gone
+    post "/api/collect"
+    get "/api/dashboard.json"
+
+    body = JSON.parse(last_response.body)
+    refute_nil body["data"]["recommendation"]
+    assert_equal "claude", body["data"]["recommendation"]["provider"]
+  end
+
+  def test_footer_names_the_projection_and_the_15_minute_collection_cadence
+    post "/api/collect"
+    get "/"
+
+    assert_includes last_response.body, "projected at current pace"
+    assert_includes last_response.body, "every 15 minutes"
+  end
+
+  def test_comparison_legend_shows_each_series_projected_percentage_at_reset
+    db = AgentUsage::Database.connect(path: @db_path)
+    insert_claude_observation(db, collected_at: "2026-01-02T00:00:00Z", remaining_percent: 90.0)
+    insert_claude_observation(db, collected_at: "2026-01-04T00:00:00Z", remaining_percent: 70.0)
+    db.close
+
+    get "/"
+
+    assert_includes last_response.body, "projected"
+    assert_includes last_response.body, "at reset (current pace)"
+  end
+
+  private
+
+  def insert_claude_observation(db, collected_at:, remaining_percent:)
+    db.execute(
+      "INSERT INTO raw_snapshots (collected_at, observed_at, schema_version, complete, errors_json, raw_json) " \
+      "VALUES (?, ?, 1, 1, '[]', '{}')",
+      [collected_at, collected_at],
+    )
+    raw_snapshot_id = db.last_insert_row_id
+    db.execute(
+      "INSERT INTO window_observations " \
+      "(raw_snapshot_id, collected_at, provider, window_key, primary_window, period_start, period_end, " \
+      "used_percent, remaining_percent, normalizer_version, raw_window_json) " \
+      "VALUES (?, ?, 'claude', 'seven_day', 1, '2026-01-01T00:00:00Z', '2026-01-08T00:00:00Z', ?, ?, 1, '{}')",
+      [raw_snapshot_id, collected_at, 100.0 - remaining_percent, remaining_percent],
+    )
   end
 end

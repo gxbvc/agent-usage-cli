@@ -10,13 +10,7 @@
 <body>
   <div class="page">
     <header class="page-header">
-      <div class="page-header-title">
-        <h1>Agent Usage</h1>
-        <p class="muted">Claude, Codex, and Grok subscription burn-down</p>
-      </div>
-      <form id="collect-now" method="post" action="/api/collect">
-        <button type="submit">Collect now</button>
-      </form>
+      <h1>Agent Usage</h1>
     </header>
 
     <% if @view[:stale] %>
@@ -40,39 +34,26 @@
       <div class="empty-state">
         <h2>No usage data yet</h2>
         <p class="muted">
-          Run the collector once to populate the dashboard, or click "Collect now" above.
+          Run the collector once to populate the dashboard.
         </p>
         <pre><code>cd ruby &amp;&amp; bin/collector</code></pre>
       </div>
     <% else %>
-      <section class="recommendation" aria-live="polite">
-        <% if @view[:recommendation] %>
-          <p class="recommendation-headline">Use <%= @view[:recommendation][:label] %> next</p>
-          <p class="recommendation-reason"><%= @view[:recommendation][:reason] %></p>
-        <% else %>
-          <p class="recommendation-headline">No recommendation yet</p>
-          <p class="recommendation-reason muted">Weekly-window data is not available for any provider.</p>
-        <% end %>
-      </section>
-
       <% [
-           { key: :weekly, dom_id: "weekly-comparison", title: "Weekly subscription comparison",
-             blurb: "Each provider's weekly-duration plan window, normalized to cycle progress so different reset schedules line up on one axis. This is the window recommendations are ranked on." },
-           { key: :short, dom_id: "short-comparison", title: "Short-window comparison (~5h)",
-             blurb: "Active short-duration windows (roughly 1–8 hours), such as Claude's 5-hour limit. Supports any future provider that reports a window in this range." },
+           { key: :weekly, dom_id: "weekly-comparison", title: "Weekly subscription comparison" },
+           { key: :short, dom_id: "short-comparison", title: "Short-window comparison (~5h)" },
          ].each do |section| %>
         <% entries = @view[:comparison][section[:key]] %>
         <section class="comparison-section" aria-labelledby="<%= section[:dom_id] %>-heading">
           <h2 id="<%= section[:dom_id] %>-heading"><%= section[:title] %></h2>
-          <p class="muted comparison-blurb"><%= section[:blurb] %></p>
           <% if entries.empty? %>
             <p class="muted">No active window data in this range yet.</p>
           <% else %>
             <%= render_comparison_chart(entries, section[:dom_id], section[:title]) %>
             <ul class="comparison-legend">
               <% entries.each do |entry| %>
+                <% projection = entry[:chart][:projection] %>
                 <li class="comparison-legend-item">
-                  <span class="legend-marker legend-marker-<%= entry[:provider] %>" aria-hidden="true"></span>
                   <% if (logo = provider_logo(entry[:provider])) %>
                     <img class="provider-logo" src="/logos/<%= logo %>" alt="" width="18" height="18" />
                   <% end %>
@@ -80,6 +61,9 @@
                     <strong><%= h(entry[:label]) %></strong> &middot; <%= h(entry[:window_label]) %>
                     &middot; <%= format_percent(entry[:remaining_percent]) %> remaining
                     &middot; <%= format_signed_points(entry[:gap_points]) %> vs. ideal
+                    <% if projection %>
+                      &middot; projected <%= format_percent(projection[:to][:y]) %> at reset (current pace)
+                    <% end %>
                     &middot; resets in
                     <span data-reset-at="<%= entry[:period_end] %>"><%= format_duration(entry[:reset_countdown_seconds]) %></span>
                   </span>
@@ -165,12 +149,13 @@
       <p class="muted">
         Observed <%= format_time(@view[:observed_at]) %> &middot; collected <%= format_time(@view[:collected_at]) %>
         &middot; <%= @view[:complete] ? "all providers reported" : "partial result" %>
+        &middot; automatic snapshots run every 15 minutes
       </p>
       <p class="legend muted">
         <span class="legend-item"><span class="legend-swatch legend-ideal"></span> ideal pace</span>
         <span class="legend-item"><span class="legend-swatch legend-actual"></span> actual</span>
         <span class="legend-item"><span class="legend-swatch legend-inferred"></span> inferred start</span>
-        <span class="legend-item"><span class="legend-swatch legend-projection"></span> projection</span>
+        <span class="legend-item"><span class="legend-swatch legend-projection"></span> projected at current pace</span>
       </p>
     </footer>
   </div>
