@@ -74,8 +74,8 @@ module AgentUsage
       (request.env["HTTP_ACCEPT"] || "").include?("application/json")
     end
 
-    def render_comparison_chart(entries, dom_id, section_label)
-      Chart.render_comparison(entries, dom_id: dom_id, section_label: section_label)
+    def render_comparison_chart(entries, dom_id, section_label, day_divisions: nil)
+      Chart.render_comparison(entries, dom_id: dom_id, section_label: section_label, day_divisions: day_divisions)
     end
 
     # nil for a provider with no locally vendored logo (a future provider

@@ -31,11 +31,11 @@ module AgentUsage
     # dashboard (weekly, short/~5h). Coordinates are normalized-cycle x
     # (0..1) / percent-remaining y (0..100) fractions, one series per
     # provider. Providers are distinguished by more than color: each also
-    # gets its own line dash pattern, and every point marker is the
-    # provider's own vendored logo (see public/logos/) rather than a generic
-    # shape, so the chart reads correctly without relying on color alone. A
-    # provider with no vendored logo (an unrecognized future provider) falls
-    # back to a plain shape marker instead.
+    # gets its own line dash pattern, and the single current-position
+    # marker is the provider's own vendored logo (see public/logos/) so the
+    # chart reads correctly without relying on color alone. A provider with
+    # no vendored logo (an unrecognized future provider) falls back to a
+    # plain shape marker instead.
     COMPARISON_WIDTH = 1160
     COMPARISON_HEIGHT = 440
     COMPARISON_MARGIN_LEFT = 60
@@ -60,19 +60,7 @@ module AgentUsage
       "grok" => "grok.png",
     }.freeze
 
-    # Restrained so a dense 15-minute-interval history (many points over a
-    # 7-day weekly window) doesn't turn into a wall of overlapping icons;
-    # the current point is sized up well past any history point so "where
-    # are we right now" stays unambiguous at a glance.
-    HISTORY_LOGO_SIZE = 10
-    INFERRED_LOGO_SIZE = 10
-    PROJECTION_LOGO_SIZE = 13
-    CURRENT_LOGO_SIZE = 22
-
-    # Minimum SVG-pixel distance (Euclidean, so a big y move still earns a
-    # marker even when x barely moved) between two rendered history markers.
-    # Roughly one logo width apart keeps neighboring icons from overlapping.
-    HISTORY_MARKER_MIN_SPACING = HISTORY_LOGO_SIZE * 1.6
+    CURRENT_LOGO_SIZE = 64
 
     def self.provider_style(provider)
       PROVIDER_STYLES.fetch(provider.to_s, DEFAULT_PROVIDER_STYLE)
@@ -87,11 +75,12 @@ module AgentUsage
       file && "/logos/#{file}"
     end
 
-    def self.render_comparison(entries, dom_id:, section_label:)
+    def self.render_comparison(entries, dom_id:, section_label:, day_divisions: nil)
       <<~SVG
         <svg class="usage-chart comparison-chart" viewBox="0 0 #{COMPARISON_WIDTH} #{COMPARISON_HEIGHT}" role="img" aria-labelledby="#{dom_id}-title" preserveAspectRatio="xMidYMid meet">
           <title id="#{dom_id}-title">#{escape(describe_comparison(section_label, entries))}</title>
           #{comparison_grid}
+          #{day_divisions ? comparison_day_lines(day_divisions) : ''}
           #{comparison_x_axis_labels}
           #{comparison_ideal_line}
           #{entries.map { |entry| comparison_series(entry) }.join("\n")}
@@ -115,6 +104,15 @@ module AgentUsage
       end.join("\n")
     end
 
+    def self.comparison_day_lines(divisions)
+      top = COMPARISON_MARGIN_TOP
+      bottom = COMPARISON_HEIGHT - COMPARISON_MARGIN_BOTTOM
+      (1...divisions).map do |i|
+        x = comparison_px_x(i / divisions.to_f).round(1)
+        %(<line class="chart-grid" x1="#{x}" y1="#{top}" x2="#{x}" y2="#{bottom}" />)
+      end.join("\n")
+    end
+
     def self.comparison_x_axis_labels
       mid = ((COMPARISON_MARGIN_LEFT + COMPARISON_WIDTH - COMPARISON_MARGIN_RIGHT) / 2.0).round(1)
       %(<text class="chart-axis-label" x="#{COMPARISON_MARGIN_LEFT}" y="#{COMPARISON_HEIGHT - 14}" text-anchor="start">Period start</text>) +
@@ -127,56 +125,17 @@ module AgentUsage
         %(x2="#{comparison_px_x(1.0).round(1)}" y2="#{comparison_px_y(0.0).round(1)}"><title>Ideal pace: 100% remaining at period start, 0% at reset</title></line>)
     end
 
+    # The polyline passes through every observation; the only marker is the
+    # provider's logo at the current (latest) point, so "where are we right
+    # now" is the single visual anchor per series.
     def self.comparison_series(entry)
       style = provider_style(entry[:provider])
       points = entry[:chart][:actual]
 
       line = comparison_line(points, style)
-      markers = comparison_markers(entry, points, style)
+      marker = points.empty? ? "" : comparison_marker(entry, points.last, style)
       projection = comparison_projection(entry, style)
-      "#{line}\n#{markers}\n#{projection}"
-    end
-
-    # A 15-minute-interval history packs many observations into the same
-    # chart width, so placing a logo on every one of them turns the line
-    # into a caterpillar of overlapping icons regardless of whether the
-    # value is flat or gradually changing. The polyline above still passes
-    # through every observation; markers are thinned to one per roughly a
-    # logo-width of SVG pixels, measured in both x and y so a meaningful
-    # jump still earns its own marker even when x barely moved. The
-    # inferred start, first real observation, and current/latest point are
-    # always guaranteed a marker regardless of spacing.
-    def self.comparison_markers(entry, points, style)
-      last_index = points.size - 1
-      first_real_index = points.index { |point| !point[:inferred] } || 0
-      guaranteed_indexes = [0, first_real_index, last_index].uniq
-      current_px = comparison_point_px(points[last_index])
-
-      last_rendered_px = nil
-      selected_indexes = points.each_index.select do |index|
-        px = comparison_point_px(points[index])
-
-        if guaranteed_indexes.include?(index)
-          last_rendered_px = px
-          next true
-        end
-
-        next false if last_rendered_px && pixel_distance(px, last_rendered_px) < HISTORY_MARKER_MIN_SPACING
-        next false if pixel_distance(px, current_px) < HISTORY_MARKER_MIN_SPACING
-
-        last_rendered_px = px
-        true
-      end
-
-      selected_indexes.map { |index| comparison_marker(entry, points[index], index == last_index, style) }.join("\n")
-    end
-
-    def self.comparison_point_px(point)
-      [comparison_px_x(point[:x]), comparison_px_y(point[:y])]
-    end
-
-    def self.pixel_distance(a, b)
-      Math.hypot(a[0] - b[0], a[1] - b[1])
+      "#{line}\n#{marker}\n#{projection}"
     end
 
     def self.comparison_line(points, style)
@@ -187,29 +146,18 @@ module AgentUsage
       %(<polyline class="chart-actual chart-actual-#{style[:css_class]}" points="#{coords}" fill="none"#{dash} />)
     end
 
-    def self.comparison_marker(entry, point, current, style)
+    def self.comparison_marker(entry, point, style)
       label = comparison_point_label(entry, point)
       cx = comparison_px_x(point[:x])
       cy = comparison_px_y(point[:y])
       href = provider_logo_href(entry[:provider])
 
       unless href
-        radius = current ? 7 : (point[:inferred] ? 5 : 4)
-        css = ["chart-point", "chart-point-#{style[:css_class]}"]
-        css << "chart-point-inferred" if point[:inferred]
-        css << "chart-point-current" if current
-        return shape_markup(style[:marker], cx, cy, radius, css.join(" "), label)
+        css = "chart-point chart-point-#{style[:css_class]} chart-point-current"
+        return shape_markup(style[:marker], cx, cy, 10, css, label)
       end
 
-      if point[:inferred]
-        decoration = marker_decoration(cx, cy, (INFERRED_LOGO_SIZE / 2.0) + 2.5, "chart-marker-ring chart-marker-ring-inferred")
-        decoration + logo_marker(cx, cy, INFERRED_LOGO_SIZE, "chart-point chart-point-#{style[:css_class]} chart-point-inferred", label, href)
-      elsif current
-        decoration = marker_decoration(cx, cy, (CURRENT_LOGO_SIZE / 2.0) + 5, "chart-marker-halo chart-point-#{style[:css_class]}")
-        decoration + logo_marker(cx, cy, CURRENT_LOGO_SIZE, "chart-point chart-point-#{style[:css_class]} chart-point-current", label, href)
-      else
-        logo_marker(cx, cy, HISTORY_LOGO_SIZE, "chart-point chart-point-#{style[:css_class]} chart-point-history", label, href)
-      end
+      logo_marker(cx, cy, CURRENT_LOGO_SIZE, "chart-point chart-point-#{style[:css_class]} chart-point-current", label, href)
     end
 
     def self.comparison_projection(entry, style)
@@ -221,27 +169,7 @@ module AgentUsage
       x2 = comparison_px_x(projection[:to][:x]).round(1)
       y2 = comparison_px_y(projection[:to][:y]).round(1)
       label = "#{entry[:label]} projected remaining at reset (current pace): #{projection[:to][:y].round(1)}%"
-      line = %(<line class="chart-projection chart-projection-#{style[:css_class]}" x1="#{x1}" y1="#{y1}" x2="#{x2}" y2="#{y2}"><title>#{escape(label)}</title></line>)
-
-      cx = comparison_px_x(projection[:to][:x])
-      cy = comparison_px_y(projection[:to][:y])
-      href = provider_logo_href(entry[:provider])
-      marker = if href
-        decoration = marker_decoration(cx, cy, (PROJECTION_LOGO_SIZE / 2.0) + 3, "chart-marker-ring chart-marker-ring-projection")
-        decoration + logo_marker(cx, cy, PROJECTION_LOGO_SIZE, "chart-point chart-point-projection chart-point-#{style[:css_class]}", label, href)
-      else
-        shape_markup(style[:marker], cx, cy, 5, "chart-point chart-point-projection chart-point-#{style[:css_class]}", label)
-      end
-      line + marker
-    end
-
-    # A plain circle drawn behind a logo marker to carry a state cue (the
-    # current-point halo, the inferred/projection dashed rings) that a fixed
-    # brand-color logo image can't. Never itself the focusable/tooltip
-    # element - that stays on the logo_marker image, per the
-    # tabindex/data-tooltip contract below.
-    def self.marker_decoration(cx, cy, radius, css_class)
-      %(<circle class="#{css_class}" cx="#{cx.round(1)}" cy="#{cy.round(1)}" r="#{radius.round(1)}" />)
+      %(<line class="chart-projection chart-projection-#{style[:css_class]}" x1="#{x1}" y1="#{y1}" x2="#{x2}" y2="#{y2}"><title>#{escape(label)}</title></line>)
     end
 
     # Renders one point as the provider's vendored logo. tabindex/data-tooltip/

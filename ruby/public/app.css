@@ -11,8 +11,8 @@
   --negative: #b91c1c;
   --projection: #b45309;
   --claude-color: #c2410c;
-  --codex-color: #0e8f6f;
-  --grok-color: #7c3aed;
+  --codex-color: #6c7fff;
+  --grok-color: #000000;
   --default-provider-color: #64748b;
   --banner-warning-bg: #fef3c7;
   --banner-warning-fg: #78350f;
@@ -34,8 +34,8 @@
     --negative: #f87171;
     --projection: #fbbf24;
     --claude-color: #fb923c;
-    --codex-color: #2dd4bf;
-    --grok-color: #a78bfa;
+    --codex-color: #aea7ff;
+    --grok-color: #ffffff;
     --default-provider-color: #94a3b8;
     --banner-warning-bg: #3f2d05;
     --banner-warning-fg: #fde68a;
@@ -57,8 +57,8 @@
   --negative: #f87171;
   --projection: #fbbf24;
   --claude-color: #fb923c;
-  --codex-color: #2dd4bf;
-  --grok-color: #a78bfa;
+  --codex-color: #aea7ff;
+  --grok-color: #ffffff;
   --default-provider-color: #94a3b8;
 }
 
@@ -74,8 +74,8 @@
   --negative: #b91c1c;
   --projection: #b45309;
   --claude-color: #c2410c;
-  --codex-color: #0e8f6f;
-  --grok-color: #7c3aed;
+  --codex-color: #6c7fff;
+  --grok-color: #000000;
   --default-provider-color: #64748b;
 }
 
@@ -289,65 +289,23 @@ summary:focus-visible {
    comparison charts: the plain circle/rect/polygon fallback shapes (used
    only when a provider has no vendored logo), and the logo <image>
    markers chart.rb draws for known providers. fill/stroke/stroke-width
-   only affect the former (an <image> can't be tinted); opacity/filter
-   affect both, which is how state (inferred/current/projection) still
-   reads on a fixed-color vendored logo. */
+   only affect the former (an <image> can't be tinted). */
 .chart-point {
   fill: var(--accent);
   cursor: pointer;
 }
 
-.chart-point-inferred {
-  fill: var(--card-bg);
-  stroke: var(--ideal);
-  stroke-width: 2;
-  stroke-dasharray: 2 2;
-  opacity: 0.55;
-}
-
 .chart-point-current {
   fill: var(--accent);
-  stroke: var(--card-bg);
-  stroke-width: 2;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
-}
-
-.chart-point-projection {
-  fill: var(--projection);
-  opacity: 0.85;
-}
-
-.chart-point-history {
-  opacity: 0.9;
-}
-
-/* Decorative circles drawn behind a logo marker (never focusable/
-   tooltipped themselves) to carry a state cue a fixed-color logo can't. */
-.chart-marker-ring {
-  fill: none;
-  stroke-width: 1.5;
-}
-
-.chart-marker-ring-inferred {
-  stroke: var(--ideal);
-  stroke-dasharray: 2 2;
-}
-
-.chart-marker-ring-projection {
-  stroke: var(--projection);
-  stroke-dasharray: 3 4;
-}
-
-.chart-marker-halo {
-  opacity: 0.3;
 }
 
 /* Overlay comparison charts: one series per provider on a shared ideal
    diagonal. Color alone never carries the distinction - each provider also
    gets its own line dash pattern (set inline per SVG element) and its own
-   vendored logo as the point marker (chart.rb), falling back to a plain
-   shape (circle/square/triangle/diamond) only for an unrecognized future
-   provider with no local logo. */
+   vendored logo as the current-point marker (chart.rb), falling back to a
+   plain shape (circle/square/triangle/diamond) only for an unrecognized
+   future provider with no local logo. */
 .comparison-section {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -490,12 +448,6 @@ summary:focus-visible {
 
 .legend-actual {
   background: var(--accent);
-}
-
-.legend-inferred {
-  background: transparent;
-  border: 2px dashed var(--ideal);
-  height: 0;
 }
 
 .legend-projection {

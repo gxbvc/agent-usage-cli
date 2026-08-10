@@ -40,7 +40,7 @@
       </div>
     <% else %>
       <% [
-           { key: :weekly, dom_id: "weekly-comparison", title: "Weekly subscription comparison" },
+           { key: :weekly, dom_id: "weekly-comparison", title: "Weekly subscription comparison", day_divisions: 7 },
            { key: :short, dom_id: "short-comparison", title: "Short-window comparison (~5h)" },
          ].each do |section| %>
         <% entries = @view[:comparison][section[:key]] %>
@@ -49,7 +49,7 @@
           <% if entries.empty? %>
             <p class="muted">No active window data in this range yet.</p>
           <% else %>
-            <%= render_comparison_chart(entries, section[:dom_id], section[:title]) %>
+            <%= render_comparison_chart(entries, section[:dom_id], section[:title], day_divisions: section[:day_divisions]) %>
             <ul class="comparison-legend">
               <% entries.each do |entry| %>
                 <% projection = entry[:chart][:projection] %>
@@ -154,7 +154,6 @@
       <p class="legend muted">
         <span class="legend-item"><span class="legend-swatch legend-ideal"></span> ideal pace</span>
         <span class="legend-item"><span class="legend-swatch legend-actual"></span> actual</span>
-        <span class="legend-item"><span class="legend-swatch legend-inferred"></span> inferred start</span>
         <span class="legend-item"><span class="legend-swatch legend-projection"></span> projected at current pace</span>
       </p>
     </footer>
