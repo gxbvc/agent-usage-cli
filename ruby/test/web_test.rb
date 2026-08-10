@@ -146,11 +146,11 @@ class WebTest < AgentUsageTest
     assert_equal "claude", body["data"]["recommendation"]["provider"]
   end
 
-  def test_footer_names_the_projection_and_the_15_minute_collection_cadence
+  def test_footer_names_the_burn_line_and_the_15_minute_collection_cadence
     post "/api/collect"
     get "/"
 
-    assert_includes last_response.body, "projected at current pace"
+    assert_includes last_response.body, "pace needed to hit 0% at reset"
     assert_includes last_response.body, "every 15 minutes"
   end
 

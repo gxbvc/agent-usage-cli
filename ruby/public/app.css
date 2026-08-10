@@ -278,11 +278,12 @@ summary:focus-visible {
   stroke-width: 2.5;
 }
 
-.chart-projection {
+.chart-burn {
   stroke: var(--projection);
   stroke-width: 2;
   stroke-dasharray: 3 4;
   fill: none;
+  opacity: 0.7;
 }
 
 /* chart-point-* classes are shared by two kinds of markers drawn in the
@@ -297,6 +298,7 @@ summary:focus-visible {
 
 .chart-point-current {
   fill: var(--accent);
+  opacity: 0.75;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
@@ -357,19 +359,19 @@ summary:focus-visible {
   fill: var(--default-provider-color);
 }
 
-.chart-projection-provider-claude {
+.chart-burn-provider-claude {
   stroke: var(--claude-color);
 }
 
-.chart-projection-provider-codex {
+.chart-burn-provider-codex {
   stroke: var(--codex-color);
 }
 
-.chart-projection-provider-grok {
+.chart-burn-provider-grok {
   stroke: var(--grok-color);
 }
 
-.chart-projection-provider-default {
+.chart-burn-provider-default {
   stroke: var(--default-provider-color);
 }
 
@@ -450,7 +452,7 @@ summary:focus-visible {
   background: var(--accent);
 }
 
-.legend-projection {
+.legend-burn {
   background: repeating-linear-gradient(90deg, var(--projection) 0 4px, transparent 4px 7px);
 }
 

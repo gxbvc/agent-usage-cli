@@ -131,11 +131,12 @@ module AgentUsage
     def self.comparison_series(entry)
       style = provider_style(entry[:provider])
       points = entry[:chart][:actual]
+      return "" if points.empty?
 
       line = comparison_line(points, style)
-      marker = points.empty? ? "" : comparison_marker(entry, points.last, style)
-      projection = comparison_projection(entry, style)
-      "#{line}\n#{marker}\n#{projection}"
+      marker = comparison_marker(entry, points.last, style)
+      burn = comparison_burn_line(entry, points.last, style)
+      "#{line}\n#{marker}\n#{burn}"
     end
 
     def self.comparison_line(points, style)
@@ -160,16 +161,15 @@ module AgentUsage
       logo_marker(cx, cy, CURRENT_LOGO_SIZE, "chart-point chart-point-#{style[:css_class]} chart-point-current", label, href)
     end
 
-    def self.comparison_projection(entry, style)
-      projection = entry[:chart][:projection]
-      return "" unless projection
-
-      x1 = comparison_px_x(projection[:from][:x]).round(1)
-      y1 = comparison_px_y(projection[:from][:y]).round(1)
-      x2 = comparison_px_x(projection[:to][:x]).round(1)
-      y2 = comparison_px_y(projection[:to][:y]).round(1)
-      label = "#{entry[:label]} projected remaining at reset (current pace): #{projection[:to][:y].round(1)}%"
-      %(<line class="chart-projection chart-projection-#{style[:css_class]}" x1="#{x1}" y1="#{y1}" x2="#{x2}" y2="#{y2}"><title>#{escape(label)}</title></line>)
+    # Straight line from the current point to (reset, 0%): the slope you
+    # would need to burn the remaining allowance exactly by reset.
+    def self.comparison_burn_line(entry, point, style)
+      x1 = comparison_px_x(point[:x]).round(1)
+      y1 = comparison_px_y(point[:y]).round(1)
+      x2 = comparison_px_x(1.0).round(1)
+      y2 = comparison_px_y(0.0).round(1)
+      label = "#{entry[:label]} pace needed to use the remaining #{point[:y].round(1)}% by reset"
+      %(<line class="chart-burn chart-burn-#{style[:css_class]}" x1="#{x1}" y1="#{y1}" x2="#{x2}" y2="#{y2}"><title>#{escape(label)}</title></line>)
     end
 
     # Renders one point as the provider's vendored logo. tabindex/data-tooltip/

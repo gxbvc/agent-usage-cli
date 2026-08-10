@@ -89,16 +89,22 @@ class ChartTest < AgentUsageTest
     assert_includes svg, "Resets"
   end
 
-  def test_projection_renders_a_line_but_no_endpoint_marker
+  def test_burn_line_runs_from_current_point_straight_to_zero_at_reset
     entries = [entry(provider: "claude", label: "Claude", window_label: "7-day", remaining_percent: 60.0, gap_points: 10.0)]
-    entries.first[:chart][:projection] = { from: { x: 1.0, y: 60.0 }, to: { x: 1.0, y: 45.0 } }
+    entries.first[:chart][:actual] = [
+      { x: 0.0, y: 100.0, collected_at: "2026-01-01T00:00:00Z", inferred: true },
+      { x: 0.5, y: 60.0, collected_at: "2026-01-04T12:00:00Z", inferred: false },
+    ]
 
     svg = AgentUsage::Chart.render_comparison(entries, dom_id: "weekly-chart", section_label: "Weekly subscription comparison")
 
-    assert_includes svg, "chart-projection-provider-claude"
-    assert_includes svg, "projected remaining at reset (current pace): 45.0%"
-    refute_includes svg, "chart-point-projection"
-    assert_equal 1, svg.scan("<image").size, "only the current-point logo, no projection endpoint logo"
+    right_edge = (AgentUsage::Chart::COMPARISON_WIDTH - AgentUsage::Chart::COMPARISON_MARGIN_RIGHT).to_f
+    bottom = (AgentUsage::Chart::COMPARISON_HEIGHT - AgentUsage::Chart::COMPARISON_MARGIN_BOTTOM).to_f
+    assert_includes svg, %(class="chart-burn chart-burn-provider-claude")
+    assert_includes svg, %(x2="#{right_edge}" y2="#{bottom}")
+    assert_includes svg, "pace needed to use the remaining 60.0% by reset"
+    assert_equal 1, svg.scan("<image").size, "only the current-point logo, no endpoint logo"
+    refute_includes svg, "chart-projection"
   end
 
   def test_dense_history_still_gets_exactly_one_marker
